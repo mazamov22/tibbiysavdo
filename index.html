@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Тиббий буюмлар савдоси | Dashboard</title>
+
+<!-- Google Fonts & FontAwesome Icons -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<!-- Firebase App, Auth, & Firestore SDK (Modular v10+) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDJXQA4GDoYpeUkeLfglZ34qyj-sGbhtac",
+    authDomain: "savdo-f67f0.firebaseapp.com",
+    projectId: "savdo-f67f0",
+    storageBucket: "savdo-f67f0.firebasestorage.app",
+    messagingSenderId: "56810111219",
+    appId: "1:56810111219:web:9a2d2492c91d179a0a7786",
+    measurementId: "G-V5X9PN1CKK"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const firestore = getFirestore(app);
+
+  window.FB_AUTH = auth;
+  window.FB_AUTH_OPS = { signInWithEmailAndPassword, signOut, onAuthStateChanged };
+  window.DB_CLOUD = firestore;
+  window.FB_OPS = { collection, doc, setDoc, deleteDoc, onSnapshot };
+  
+  window.initAuthAndSync();
+</script>
+
+<style>
+:root {
+  --primary: #15803d;
+  --primary-hover: #166534;
+  --primary-light: #f0fdf4;
+  --primary-border: #bbf7d0;
+  --bg: #ffffff;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --danger: #dc2626;
+  --warning: #d97706;
+  --success: #16a34a;
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.05);
+  --radius: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #09140e;
+    --card: #112217;
+    --text: #f0fdf4;
+    --muted: #86efac;
+    --border: #1e3a29;
+    --primary-light: #143522;
+  }
+}
+
+* { box-sizing: border-box; transition: background-color 0.15s ease, border-color 0.15s ease; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  padding-bottom: 84px;
+  min-height: 100vh;
+}
+
+header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.brand { font-weight: 700; font-size: 1.05rem; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.brand i { color: var(--primary); }
+.status-pill {
+  font-size: 0.78rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: var(--primary-light);
+  border: 1px solid var(--primary-border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary);
+  font-weight: 600;
+}
+.user-menu { display: flex; align-items: center; gap: 12px; }
+
+/* Auth Overlay Screen */
+#auth-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+.auth-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 28px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+}
+
+main { max-width: 960px; margin: 18px auto; padding: 0 16px; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Grid & Stats */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  border: 1px solid var(--primary-border);
+}
+.stat-info b { display: block; font-size: 1.15rem; font-weight: 700; }
+.stat-info span { color: var(--muted); font-size: 0.78rem; }
+
+/* Product Item with Image */
+.prod-img {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.prod-img-placeholder {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  background: var(--primary-light);
+  border: 1px solid var(--primary-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+input, select, button {
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  width: 100%;
+  margin: 3px 0 8px 0;
+  outline: none;
+}
+input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+button {
+  background: var(--primary);
+  color: #ffffff;
+  border: 0;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+button:hover { background: var(--primary-hover); }
+button.s { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+button.s:hover { background: var(--primary-light); }
+button.d { background: var(--danger); color: #fff; }
+.row { display: flex; gap: 8px; } .row > * { flex: 1; }
+
+nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0px));
+  z-index: 10;
+  box-shadow: 0 -2px 8px rgb(0 0 0 / 0.03);
+}
+nav button {
+  background: none;
+  color: var(--muted);
+  border: 0;
+  font-size: 0.72rem;
+  padding: 6px 2px;
+  margin: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+nav button.on { color: var(--primary); font-weight: 700; }
+
+.it {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.it:last-child { border-bottom: 0; }
+.badge {
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 600;
+}
+.badge.r { background: var(--danger); }
+.badge.o { background: var(--warning); }
+.badge.g { background: var(--success); }
+
+#inv { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 50; overflow: auto; padding: 20px; }
+#inv.on { display: block; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 0.85rem; }
+th, td { border-bottom: 1px solid var(--border); padding: 8px 4px; text-align: left; }
+@media print {
+  body > *:not(#inv) { display: none !important; }
+  #inv { position: static; background: #fff; color: #000; padding: 0; }
+  .np { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="auth-modal">
+  <div class="auth-card">
+    <div style="text-align: center; margin-bottom: 20px;">
+      <i class="fa-solid fa-notes-medical" style="font-size: 2.4rem; color: var(--primary);"></i>
+      <h2 style="margin: 8px 0 2px 0; font-size: 1.25rem;">Тиббий Савдо</h2>
+      <p style="color: var(--muted); font-size: 0.82rem; margin: 0;">Хавфсиз тизимга кириш</p>
+    </div>
+
+    <form onsubmit="handleLogin(event)">
+      <label style="font-size: 0.8rem; font-weight: 600;">E-mail</label>
+      <input type="email" id="auth-email" placeholder="admin@savdo.uz" required>
+      
+      <label style="font-size: 0.8rem; font-weight: 600;">Парол</label>
+      <input type="password" id="auth-pass" placeholder="••••••••" required>
+
+      <button type="submit" style="margin-top: 10px; width: 100%;">
+        <i class="fa-solid fa-right-to-bracket"></i> Кириш
+      </button>
+    </form>
+
+    <div style="margin-top: 14px; text-align: center; border-top: 1px solid var(--border); padding-top: 12px;">
+      <a href="https://console.firebase.google.com/project/savdo-f67f0/authentication/users" target="_blank" style="font-size: 0.8rem; color: var(--primary); text-decoration: none; font-weight: 600;">
+        <i class="fa-solid fa-user-plus"></i> Firebase-да янги фойдаланувчи яратиш →
+      </a>
+    </div>
+    
+    <div id="auth-err" style="color: var(--danger); font-size: 0.82rem; margin-top: 10px; text-align: center;"></div>
+  </div>
+</div>
+
+<header>
+  <div class="brand"><i class="fa-solid fa-notes-medical"></i> Тиббий Савдо</div>
+  <div class="status-pill" id="sy"><i class="fa-solid fa-circle-notch fa-spin"></i> Уланяпти…</div>
+  <div class="user-menu" id="user-menu" style="display: none;">
+    <span id="user-display" style="font-size: 0.82rem; font-weight: 600;"></span>
+    <button onclick="handleLogout()" class="s" style="padding: 4px 8px; font-size: 0.75rem; margin: 0;"><i class="fa-solid fa-right-from-bracket"></i> Чиқиш</button>
+  </div>
+</header>
+
+<main id="app">
+  <div class="card" style="text-align: center; padding: 40px;">
+    <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 1.8rem; color: var(--primary);"></i>
+    <p style="margin-top: 10px; color: var(--muted); font-size: 0.88rem;">Тизим юкланмоқда…</p>
+  </div>
+</main>
+
+<div id="inv"></div>
+<nav id="nav"></nav>
+
+<script>
+var KEY="tibbiy_v3", tab="home", cart=[], db={p:[], c:[], s:[], pay:[]};
+db.k=db.k||{}; db.l=db.l||[];
+var currentUser = null;
+
+function $(i){ return document.getElementById(i); }
+function v(i){ return $(i) ? $(i).value : ''; }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function m(n){ return Math.round(n||0).toString().replace(/\B(?=(\d{3})+(?!\d))/g," ") + " сўм"; }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function days(d){ return Math.round((new Date(d) - new Date(today())) / 864e5); }
+function expBadge(e){ var d = days(e); if(d<0) return '<span class="badge r">Муддати ўтган</span>'; if(d<=90) return '<span class="badge o">Қолди: '+d+' кун</span>'; return '<span class="badge g">'+e+'</span>'; }
+
+function P(id){ return db.p.find(a => a.id==id); }
+function C(id){ return db.c.find(a => a.id==id); }
+function paid(s){ return s.paid + db.pay.filter(p => p.sid==s.id).reduce((a,p) => a+p.amt, 0); }
+function debt(s){ return s.total - paid(s); }
+function cdebt(cid){ return db.s.filter(s => s.cid==cid).reduce((a,s) => a+debt(s), 0); }
+
+// Auth Flow
+window.initAuthAndSync = function() {
+  const auth = window.FB_AUTH;
+  const { onAuthStateChanged } = window.FB_AUTH_OPS;
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = user;
+      $("auth-modal").style.display = "none";
+      $("user-menu").style.display = "flex";
+      $("user-display").textContent = user.email.split("@")[0];
+      window.initCloudSync();
+    } else {
+      currentUser = null;
+      $("auth-modal").style.display = "flex";
+      $("user-menu").style.display = "none";
+      $("sy").innerHTML = '<i class="fa-solid fa-lock"></i> Тизимга кирилмаган';
+      $("app").innerHTML = '<div class="card">Давом этиш учун тизимга киринг.</div>';
+    }
+  });
+};
+
+function handleLogin(e) {
+  e.preventDefault();
+  const email = v("auth-email"), pass = v("auth-pass");
+  $("auth-err").textContent = "";
+
+  window.FB_AUTH_OPS.signInWithEmailAndPassword(window.FB_AUTH, email, pass)
+    .catch(err => { $("auth-err").textContent = "Логин ёки парол хато!"; });
+}
+
+function handleLogout() {
+  window.FB_AUTH_OPS.signOut(window.FB_AUTH);
+}
+
+// Cloud Database Sync
+function put(col, rec) {
+  if(!window.DB_CLOUD) return;
+  var op = window.FB_OPS;
+  op.setDoc(op.doc(window.DB_CLOUD, col, rec.id), rec).catch(() => {});
+}
+
+function putK(id, c) {
+  db.k[id] = c;
+  if(!window.DB_CLOUD) return;
+  var op = window.FB_OPS;
+  op.setDoc(op.doc(window.DB_CLOUD, "k", id), {id: id, cost: c}).catch(()=>{});
+}
+
+window.initCloudSync = function() {
+  try {
+    var op = window.FB_OPS, dbC = window.DB_CLOUD;
+    $("sy").innerHTML = '<i class="fa-solid fa-cloud"></i> Жонли синхрон';
+
+    op.onSnapshot(op.collection(dbC, "k"), (sn) => {
+      db.k = {};
+      sn.docs.forEach(x => { var q = x.data(); if(q.id && q.cost != null) db.k[q.id] = q.cost; });
+      renderCheck();
+    });
+
+    ["p","c","s","pay","l"].forEach(col => {
+      op.onSnapshot(op.collection(dbC, col), (sn) => {
+        db[col] = sn.docs.map(x => x.data());
+        if(col=="s") db.s.sort((a,b) => (a.ts||0) - (b.ts||0));
+        renderCheck();
+      });
+    });
+  } catch(e) {
+    $("sy").innerHTML = '<i class="fa-solid fa-wifi" style="color:var(--warning)"></i> Офлайн режим';
+  }
+};
+
+function renderCheck() {
+  var a = document.activeElement;
+  if(!a || (a.tagName!="INPUT" && a.tagName!="SELECT")) render();
+}
+
+// Navigation Tabs
+var tabs = [
+  ["home", "fa-chart-pie", "Асосий"],
+  ["stock", "fa-boxes-stacked", "Омбор"],
+  ["sell", "fa-cart-shopping", "Сотув"],
+  ["debt", "fa-credit-card", "Насия"],
+  ["cli", "fa-users", "Мижоз"],
+  ["docs", "fa-file-invoice-dollar", "Ҳужжат"]
+];
+
+function nav() {
+  $("nav").innerHTML = tabs.map(t => 
+    `<button class="${tab==t[0]?'on':''}" onclick="go('${t[0]}')"><i class="fa-solid ${t[1]}"></i>${t[2]}</button>`
+  ).join("");
+}
+
+function go(t) { tab = t; render(); }
+
+function render() {
+  nav();
+  if(!currentUser) return;
+  var h = "";
+  if(tab=="home") h = home();
+  if(tab=="stock") h = stock();
+  if(tab=="sell") h = sell();
+  if(tab=="debt") h = debts();
+  if(tab=="cli") h = cli();
+  if(tab=="docs") h = docs();
+  $("app").innerHTML = h;
+}
+
+function home() {
+  var val = db.p.reduce((a,p) => a + p.qty * p.price, 0);
+  var dt = db.s.reduce((a,s) => a + debt(s), 0);
+  var td = db.s.filter(s => s.date == today()).reduce((a,s) => a + s.total, 0);
+  var ex = db.p.filter(p => p.qty > 0 && days(p.exp) <= 90);
+  var low = db.p.filter(p => p.qty > 0 && p.qty <= 5);
+
+  return `
+    <div class="grid">
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fa-solid fa-coins"></i></div>
+        <div class="stat-info"><b>${m(td)}</b><span>Бугунги савдо</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background: #fef2f2; color: var(--danger); border-color:#fecaca;"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+        <div class="stat-info"><b>${m(dt)}</b><span>Умумий қарз</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fa-solid fa-warehouse"></i></div>
+        <div class="stat-info"><b>${m(val)}</b><span>Омбор қиймати</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fa-solid fa-receipt"></i></div>
+        <div class="stat-info"><b>${db.s.length}</b><span>Жами битимлар</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 12px 0; font-size:0.95rem;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--warning)"></i> Яроқлилик муддати охирлаётганлар</h3>
+      ${ex.length ? ex.map(p => `
+        <div class="it">
+          <div style="display:flex; align-items:center; gap:10px;">
+            ${p.img ? `<img src="${esc(p.img)}" class="prod-img">` : `<div class="prod-img-placeholder"><i class="fa-solid fa-pills"></i></div>`}
+            <div><b>${esc(p.name)}</b><div style="color:var(--muted); font-size:0.78rem">серия ${esc(p.batch)} · ${p.qty} дона</div></div>
+          </div>
+          ${expBadge(p.exp)}
+        </div>
+      `).join("") : '<div style="color:var(--muted); font-size:0.85rem">Барча товарлар муддати жойида.</div>'}
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 12px 0; font-size:0.95rem;"><i class="fa-solid fa-arrow-trend-down" style="color:var(--danger)"></i> Қолдиғи кам товарлар (≤5)</h3>
+      ${low.length ? low.map(p => `
+        <div class="it">
+          <div style="display:flex; align-items:center; gap:10px;">
+            ${p.img ? `<img src="${esc(p.img)}" class="prod-img">` : `<div class="prod-img-placeholder"><i class="fa-solid fa-pills"></i></div>`}
+            <div><b>${esc(p.name)}</b></div>
+          </div>
+          <span class="badge r">${p.qty} дона</span>
+        </div>
+      `).join("") : '<div style="color:var(--muted); font-size:0.85rem">Омборда товар етарли.</div>'}
+    </div>
+  `;
+}
+
+function stock() {
+  var l = db.p.slice().sort((a,b) => a.exp < b.exp ? -1 : 1);
+  return `
+    <div class="card">
+      <h3 style="margin:0 0 12px 0; font-size:0.95rem;"><i class="fa-solid fa-plus" style="color:var(--primary)"></i> Янги товар кирими</h3>
+      <input id="pn" placeholder="Товар номи">
+      <input id="pi" placeholder="Расм ҳаволаси (URL / Image link, ихтиёрий)">
+      <div class="row">
+        <input id="pb" placeholder="Серия №">
+        <input id="pr" placeholder="Сертификат №">
+      </div>
+      <div class="row">
+        <input id="pe" type="date">
+        <input id="pq" type="number" placeholder="Миқдор">
+      </div>
+      <div class="row">
+        <input id="pc" type="number" placeholder="Кирим нархи">
+        <input id="pp" type="number" placeholder="Сотув нархи">
+      </div>
+      <button onclick="addP()"><i class="fa-solid fa-check"></i> Қўшиш</button>
+    </div>
+
+    <input id="q" placeholder="🔍 Товар номи ёки серия бўйича қидириш…" oninput="filt()">
+    <div class="card" id="pl">${plist(l)}</div>
+  `;
+}
+
+function plist(l) {
+  return l.length ? l.map(p => `
+    <div class="it">
+      <div style="display:flex; align-items:center; gap:12px;">
+        ${p.img ? `<img src="${esc(p.img)}" class="prod-img">` : `<div class="prod-img-placeholder"><i class="fa-solid fa-pills"></i></div>`}
+        <div>
+          <b>${esc(p.name)}</b>
+          <div style="color:var(--muted); font-size:0.78rem;">серия ${esc(p.batch)} · ${expBadge(p.exp)}</div>
+          <div style="font-size:0.82rem; font-weight:600; color:var(--primary); margin-top:2px;">Сотув: ${m(p.price)}</div>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <b>${p.qty} дона</b><br>
+        <button class="s" style="padding: 3px 8px; font-size:0.75rem;" onclick="edP('${p.id}')"><i class="fa-solid fa-pen"></i></button>
+      </div>
+    </div>
+  `).join("") : '<div style="color:var(--muted); font-size:0.85rem">Товар топилмади</div>';
+}
+
+function filt() {
+  var q = v("q").toLowerCase();
+  $("pl").innerHTML = plist(db.p.filter(p => (p.name + p.batch + (p.reg||"")).toLowerCase().includes(q)));
+}
+
+function addP() {
+  var n = v("pn").trim(), q = +v("pq"), pp = +v("pp"), pc = +v("pc"), img = v("pi").trim();
+  if(!n || !v("pe") || !q || !pp) return alert("Маълумотларни тўлиқ киритинг");
+  var np = { id: uid(), name: n, batch: v("pb"), reg: v("pr"), exp: v("pe"), qty: q, price: pp, img: img };
+  db.p.push(np); put("p", np);
+  if(pc) putK(np.id, pc);
+  render();
+}
+
+function edP(id) {
+  var p = P(id);
+  $("inv").innerHTML = `
+    <div class="card" style="max-width:480px; margin: 30px auto;">
+      <h3 style="margin-top:0">Товарни таҳрирлаш</h3>
+      <input id="en" value="${esc(p.name)}">
+      <input id="ei" value="${esc(p.img||"")}" placeholder="Расм ҳаволаси (URL)">
+      <div class="row">
+        <input id="eb" value="${esc(p.batch)}" placeholder="Серия">
+        <input id="ee" type="date" value="${esc(p.exp)}">
+      </div>
+      <div class="row">
+        <input id="eq" type="number" value="${p.qty}" placeholder="Миқдор">
+        <input id="ep" type="number" value="${p.price}" placeholder="Сотув нархи">
+      </div>
+      <input id="ec" type="number" value="${db.k[id]||0}" placeholder="Кирим нархи">
+      <button onclick="saveP('${id}')"><i class="fa-solid fa-floppy-disk"></i> Сақлаш</button>
+      <button class="d" onclick="delP('${id}')"><i class="fa-solid fa-trash"></i> Ўчириш</button>
+      <button class="s" onclick="$('inv').className=''">Бекор қилиш</button>
+    </div>
+  `;
+  $("inv").className = "on";
+}
+
+function saveP(id) {
+  var p = P(id), q = +v("eq"), pp = +v("ep");
+  if(!v("en").trim() || !v("ee") || !(q >= 0) || !(pp > 0)) return alert("Маълумотни тўғри киритинг");
+  p.name = v("en").trim(); p.img = v("ei").trim(); p.batch = v("eb"); p.exp = v("ee"); p.qty = q; p.price = pp;
+  put("p", p);
+  if($("ec")) putK(id, +v("ec") || 0);
+  $("inv").className = ""; render();
+}
+
+function delP(id) {
+  if(!confirm("Тасдиқлайсизми?")) return;
+  db.p = db.p.filter(x => x.id != id);
+  if(window.DB_CLOUD) window.FB_OPS.deleteDoc(window.FB_OPS.doc(window.DB_CLOUD, "p", id));
+  $("inv").className = ""; render();
+}
+
+function sell() {
+  var av = db.p.filter(p => p.qty > 0 && days(p.exp) >= 0);
+  var tot = cart.reduce((a,i) => a + i.qty * i.price, 0);
+  return `
+    <div class="card">
+      <h3 style="margin:0 0 12px 0; font-size:0.95rem;"><i class="fa-solid fa-cart-plus" style="color:var(--primary)"></i> Сотув ойнаси</h3>
+      <select id="sp">
+        ${av.map(p => `<option value="${p.id}">${esc(p.name)} (${p.qty} дона) — ${m(p.price)}</option>`).join("")}
+      </select>
+      <div class="row">
+        <input id="sq" type="number" placeholder="Миқдор">
+        <button onclick="addC()"><i class="fa-solid fa-plus"></i> Саватга</button>
+      </div>
+
+      ${cart.map((i, k) => `
+        <div class="it">
+          <div style="display:flex; align-items:center; gap:10px;">
+            ${P(i.pid).img ? `<img src="${esc(P(i.pid).img)}" class="prod-img">` : `<div class="prod-img-placeholder"><i class="fa-solid fa-pills"></i></div>`}
+            <div>${esc(P(i.pid).name)} × ${i.qty} дона</div>
+          </div>
+          <div><b>${m(i.qty * i.price)}</b> <button class="d" style="padding: 2px 6px; width:auto; font-size:0.75rem;" onclick="cart.splice(${k},1);render()">✕</button></div>
+        </div>
+      `).join("")}
+
+      <h3 style="text-align:right; color:var(--primary); margin: 12px 0;">Жами: ${m(tot)}</h3>
+
+      <select id="sc">
+        <option value="">— Мижозни танланг (Нақд савдо учун шарт эмас) —</option>
+        ${db.c.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("")}
+      </select>
+      <input id="sd" type="number" placeholder="Тўланган сумма" value="${tot}">
+      <button onclick="doSale()"><i class="fa-solid fa-check"></i> Сотишни якунлаш</button>
+    </div>
+  `;
+}
+
+function addC() {
+  var p = P(v("sp")), q = +v("sq");
+  if(!p || q <= 0) return;
+  var ex = cart.find(i => i.pid == p.id);
+  var have = (ex ? ex.qty : 0) + q;
+  if(have > p.qty) return alert("Омборда фақат " + p.qty + " дона бор");
+  if(ex) ex.qty = have; else cart.push({ pid: p.id, qty: q, price: p.price });
+  render();
+}
+
+function doSale() {
+  if(!cart.length) return alert("Сават бўш");
+  var tot = cart.reduce((a,i) => a + i.qty * i.price, 0);
+  var pd = Math.min(+v("sd") || 0, tot), cid = v("sc");
+  if(pd < tot && !cid) return alert("Насия савдо учун мижозни танланг");
+
+  cart.forEach(i => { P(i.pid).qty -= i.qty; put("p", P(i.pid)); });
+  var s = { id: uid(), no: db.s.length + 1, date: today(), cid: cid, items: cart.map(i => ({ pid: i.pid, qty: i.qty, price: i.price })), total: tot, paid: pd, ts: Date.now() };
+  db.s.push(s); put("s", s);
+  cart = []; render(); inv(s.id);
+}
+
+function debts() {
+  var l = db.s.filter(s => debt(s) > 0);
+  return `
+    <div class="card">
+      <h3 style="margin:0 0 12px 0; font-size:0.95rem;"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--primary)"></i> Насия қарздорликлари</h3>
+      ${l.length ? l.map(s => `
+        <div class="it">
+          <div>
+            <b>${esc(s.cid ? C(s.cid).name : "—")}</b>
+            <div style="color:var(--muted); font-size:0.78rem">Ҳисоб №${s.no} · ${s.date}</div>
+          </div>
+          <div style="text-align:right">
+            <b style="color:var(--danger)">${m(debt(s))}</b><br>
+            <button class="s" style="padding: 3px 8px; font-size:0.75rem;" onclick="payD('${s.id}')">Тўлов</button>
+          </div>
+        </div>
+      `).join("") : '<div style="color:var(--muted); font-size:0.85rem">Қарздорлик мавжуд эмас 🎉</div>'}
+    </div>
+  `;
+}
+
+function payD(id) {
+  var s = db.s.find(a => a.id == id);
+  var a = +prompt("Тўлов суммаси (Қарз: " + m(debt(s)) + ")");
+  if(a > 0) {
+    var pr = { id: uid(), sid: id, amt: Math.min(a, debt(s)), date: today() };
+    db.pay.push(pr); put("pay", pr); render();
+  }
+}
+
+function cli() {
+  return `
+    <div class="card">
+      <h3 style="margin:0 0 12px 0; font-size:0.95rem;"><i class="fa-solid fa-user-plus" style="color:var(--primary)"></i> Янги мижоз</h3>
+      <input id="cn" placeholder="Клиника / Ташкилот номи">
+      <div class="row">
+        <input id="ci" placeholder="СТИР (ИНН)">
+        <input id="ct" placeholder="Телефон №">
+      </div>
+      <button onclick="addCl()"><i class="fa-solid fa-plus"></i> Сақлаш</button>
+    </div>
+
+    <div class="card">
+      ${db.c.length ? db.c.map(c => `
+        <div class="it">
+          <div>
+            <b>${esc(c.name)}</b>
+            <div style="color:var(--muted); font-size:0.78rem">${esc(c.inn||"")} ${esc(c.tel||"")}</div>
+          </div>
+          <div>${cdebt(c.id) > 0 ? `<span class="badge r">${m(cdebt(c.id))}</span>` : '<span class="badge g">Қарзи йўқ</span>'}</div>
+        </div>
+      `).join("") : '<div style="color:var(--muted); font-size:0.85rem">Мижозлар рўйхати бўш</div>'}
+    </div>
+  `;
+}
+
+function addCl() {
+  if(!v("cn").trim()) return;
+  var nc = { id: uid(), name: v("cn").trim(), inn: v("ci"), tel: v("ct") };
+  db.c.push(nc); put("c", nc); render();
+}
+
+function docs() {
+  var rev = db.s.reduce((a,s) => a + s.total, 0);
+  return `
+    <div class="card">
+      <h3 style="margin:0 0 12px 0; font-size:0.95rem;"><i class="fa-solid fa-chart-line" style="color:var(--primary)"></i> Молиявий ҳисобот</h3>
+      <div class="it"><span>Умумий савдо тушуми:</span> <b>${m(rev)}</b></div>
+      <div class="it"><span>Йиғилган тўловлар:</span> <b>${m(db.s.reduce((a,s) => a + paid(s), 0))}</b></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 12px 0; font-size:0.95rem;"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary)"></i> Охирги чеклар ва фактуралар</h3>
+      ${db.s.slice().reverse().map(s => `
+        <div class="it" onclick="inv('${s.id}')">
+          <div><b>Чек №${s.no}</b> · <span style="color:var(--muted);">${s.date}</span></div>
+          <div><b>${m(s.total)}</b> <i class="fa-solid fa-print"></i></div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function inv(id) {
+  var s = db.s.find(a => a.id == id), c = s.cid ? C(s.cid) : null;
+  $("inv").innerHTML = `
+    <div class="np row" style="margin-bottom: 16px;">
+      <button onclick="window.print()"><i class="fa-solid fa-print"></i> Чоп этиш</button>
+      <button class="s" onclick="$('inv').className=''">Ёпиш</button>
+    </div>
+    <h2>Ҳисоб-фактура №${s.no}</h2>
+    <p><b>Сана:</b> ${s.date}<br><b>Сотувчи:</b> Тиббий буюмлар савдоси МЧЖ<br><b>Харидор:</b> ${c ? esc(c.name) + ' (СТИР: ' + esc(c.inn||"—") + ')' : "Нақд савдо"}</p>
+    <table>
+      <tr><th>Номи</th><th>Серия</th><th>Муддат</th><th>Сони</th><th>Нархи</th><th>Сумма</th></tr>
+      ${s.items.map(i => {
+        var p = P(i.pid) || {};
+        return `<tr><td>${esc(p.name)}</td><td>${esc(p.batch)}</td><td>${esc(p.exp)}</td><td>${i.qty}</td><td>${m(i.price)}</td><td>${m(i.qty * i.price)}</td></tr>`;
+      }).join("")}
+    </table>
+    <h3>Жами: ${m(s.total)}</h3>
+    <p>Тўланган: ${m(paid(s))} · Қарз: ${m(debt(s))}</p>
+  `;
+  $("inv").className = "on";
+}
+
+render();
+</script>
+</body>
+</html>
